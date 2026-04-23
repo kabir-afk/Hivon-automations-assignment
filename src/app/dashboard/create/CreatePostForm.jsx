@@ -3,24 +3,52 @@
 import { useState } from 'react'
 import { createPost } from '@/lib/actions/posts'
 import { useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast'
 
 export default function CreatePostForm() {
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState(null)
+  const [preview, setPreview] = useState(null)
   const router = useRouter()
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setPreview(null)
+    }
+  }
 
   async function handleSubmit(formData) {
     setIsPending(true)
     setError(null)
     
-    // The image is already part of the formData because of the input[type="file"]
-    const result = await createPost(formData)
+    const promise = createPost(formData)
     
-    if (result?.error) {
-      setError(result.error)
-      setIsPending(false)
+    toast.promise(promise, {
+      loading: 'Creating your insight and generating AI summary...',
+      success: (data) => {
+        if (data.error) throw new Error(data.error)
+        router.push('/dashboard')
+        return 'Post published successfully!'
+      },
+      error: (err) => {
+        setError(err.message)
+        setIsPending(false)
+        return `Failed: ${err.message}`
+      }
+    })
+
+    const result = await promise
+    if (!result.error) {
+      // Success handled in toast.promise
     } else {
-      router.push('/dashboard')
+      setIsPending(false)
     }
   }
 
@@ -75,21 +103,31 @@ export default function CreatePostForm() {
 
             <div className="space-y-3">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-2">Cover Visual</label>
-              <div className="flex justify-center px-10 py-12 border-2 border-slate-200/60 border-dashed rounded-[2rem] hover:border-indigo-400 hover:bg-indigo-50/30 transition-all bg-white/30 group/upload cursor-pointer relative shadow-inner">
-                <div className="space-y-3 text-center">
-                  <div className="mx-auto h-16 w-16 bg-white rounded-2xl shadow-md flex items-center justify-center text-indigo-500 transition-all duration-300 group-hover/upload:scale-110 group-hover/upload:rotate-3 group-hover/upload:text-indigo-600">
-                    <svg className="h-8 w-8" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+              <div className="flex justify-center px-10 py-12 border-2 border-slate-200/60 border-dashed rounded-[2rem] hover:border-indigo-400 hover:bg-indigo-50/30 transition-all bg-white/30 group/upload cursor-pointer relative shadow-inner overflow-hidden">
+                {preview ? (
+                  <div className="absolute inset-0 w-full h-full">
+                    <img src={preview} alt="Preview" className="w-full h-full object-cover opacity-60 group-hover/upload:opacity-40 transition-opacity" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-indigo-900/10 group-hover/upload:bg-indigo-900/20 transition-colors">
+                      <span className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black text-indigo-600 shadow-xl">Change Image</span>
+                    </div>
+                    <input id="file-upload" name="image" type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handleImageChange} />
                   </div>
-                  <div className="flex flex-col items-center justify-center text-sm text-slate-600">
-                    <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-bold text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
-                      <span>Click to upload image</span>
-                      <input id="file-upload" name="image" type="file" className="sr-only" accept="image/*" />
-                    </label>
-                    <p className="mt-1 text-xs text-slate-400 font-medium">PNG, JPG up to 10MB</p>
+                ) : (
+                  <div className="space-y-3 text-center">
+                    <div className="mx-auto h-16 w-16 bg-white rounded-2xl shadow-md flex items-center justify-center text-indigo-500 transition-all duration-300 group-hover/upload:scale-110 group-hover/upload:rotate-3 group-hover/upload:text-indigo-600">
+                      <svg className="h-8 w-8" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <div className="flex flex-col items-center justify-center text-sm text-slate-600">
+                      <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-bold text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
+                        <span>Click to upload image</span>
+                        <input id="file-upload" name="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
+                      </label>
+                      <p className="mt-1 text-xs text-slate-400 font-medium">PNG, JPG up to 10MB</p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

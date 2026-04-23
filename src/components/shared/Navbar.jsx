@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { logout } from '@/lib/actions/auth'
+import LogoutButton from './LogoutButton'
 
 export default async function Navbar() {
   const supabase = await createClient()
@@ -25,9 +25,7 @@ export default async function Navbar() {
               {(userData?.role === 'author' || userData?.role === 'admin') && (
                 <Link href="/dashboard" className="text-gray-600 hover:text-indigo-600 font-semibold text-sm">Dashboard</Link>
               )}
-              <form action={logout}>
-                <button type="submit" className="text-gray-500 hover:text-red-600 font-semibold text-sm cursor-pointer">Logout</button>
-              </form>
+              <LogoutButton />
             </>
           ) : (
             <>

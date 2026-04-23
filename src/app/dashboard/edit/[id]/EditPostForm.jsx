@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { updatePost } from '@/lib/actions/posts'
 import { useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast'
 
 export default function EditPostForm({ post }) {
   const [isPending, setIsPending] = useState(false)
@@ -13,13 +14,28 @@ export default function EditPostForm({ post }) {
     setIsPending(true)
     setError(null)
     formData.append('id', post.id)
-    const result = await updatePost(formData)
     
-    if (result?.error) {
-      setError(result.error)
-      setIsPending(false)
+    const promise = updatePost(formData)
+    
+    toast.promise(promise, {
+      loading: 'Updating your insight...',
+      success: (data) => {
+        if (data.error) throw new Error(data.error)
+        router.push('/dashboard')
+        return 'Post updated successfully!'
+      },
+      error: (err) => {
+        setError(err.message)
+        setIsPending(false)
+        return `Failed: ${err.message}`
+      }
+    })
+
+    const result = await promise
+    if (!result.error) {
+      // Success handled in toast.promise
     } else {
-      router.push('/dashboard')
+      setIsPending(false)
     }
   }
 
